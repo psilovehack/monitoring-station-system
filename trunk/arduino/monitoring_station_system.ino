@@ -1,33 +1,51 @@
 #include <DHT.h>
 
-
 //pin declarations
-const int ACTPIN =  50;
+const int ACTPIN = 50;
 const int DHTPIN = 52;
 
-//action codes
+//libs declarations
+DHT dht(DHTPIN, DHT11);
+
+//######## action codes #######
+
+//hardware acts
+const int RESET_BOARD = 100;
+const int FREE_MEMORY = 110;
+const int UP_TIME = 120;
+
+//activity acts
 const int READ_ACTIVITY = 350;
+const int ACTIVITY_NOTIFY_CHANGE = 351;
+const int ACTIVITY_NOTIFY_STATUS = 352;
+
+//evvironment acts
 const int READ_TEMP = 360;
 const int READ_HUMIDITY = 370;
 
 const int LOG = 210;
 
-const int FREE_MEMORY = 110;
-const int RESET_BOARD = 100;
+//####### end actions declarations #########
+
+// ##### actions properties #######
+
+//flag to notify activity (or not) via serial 
+int IS_NOTIFY_ACTIVITY = 1;
+
+// ##### end actions properties #######
 
 //others programs consts
-const String ACTION_VALUE_SEPARATOR = "=";
-
-//libs declarations
-DHT dht(DHTPIN, DHT11);
+#define ACTION_VALUE_SEPARATOR '='
+#define END_LINE_CHAR ';'
 
 //reset funcion
 void (*reset) (void) = 0;
 
-long ACT_INTERVAL = millis();
+//interval for verify activity sensor. incremented by 5000 in function
+long ACT_INTERVAL_THREAD = millis();
 
 //local vars declarations
-boolean ACTIVITY_DETECTED = false;
+int ACTIVITY_DETECTED = 0;
 
 
 void setup() {
@@ -56,10 +74,11 @@ verify activity wit 5 secs interval
  */
 void verifyActivity(){
   //verify activity
-  if (digitalRead(ACTPIN) && !ACTIVITY_DETECTED && ACT_INTERVAL < millis()) {
-    ACTIVITY_DETECTED = true;
-    printResult(READ_ACTIVITY, readActivity());
-    ACT_INTERVAL = millis() + 5000;
+  if (digitalRead(ACTPIN) && !ACTIVITY_DETECTED && ACT_INTERVAL_THREAD < millis()) {
+    ACTIVITY_DETECTED = 1;
+    ACT_INTERVAL_THREAD = millis() + 5000;
+    if (IS_NOTIFY_ACTIVITY)
+      printResult(READ_ACTIVITY, readActivity());
   }
 }
 
@@ -114,6 +133,10 @@ void executeAction(int action) {
     printResult(READ_ACTIVITY, readActivity());
     break;
 
+  case ACTIVITY_NOTIFY_STATUS:
+    printResult(ACTIVITY_NOTIFY_STATUS, IS_NOTIFY_ACTIVITY);
+    break;
+
   case READ_TEMP:
     printResult(READ_TEMP, readTemp());
     break;
@@ -124,6 +147,10 @@ void executeAction(int action) {
 
   case FREE_MEMORY:
     printResult(FREE_MEMORY, memoryTest());
+    break;
+
+  case UP_TIME:
+    printResult(UP_TIME, millis()); 
     break;
 
   case RESET_BOARD:
@@ -143,6 +170,10 @@ void executeAction(int action, String value){
 
   case LOG:
     log(value);
+    break;
+
+  case ACTIVITY_NOTIFY_CHANGE:
+    printResult(ACTIVITY_NOTIFY_CHANGE, changeActNotify(value));
     break;
 
   }
@@ -172,7 +203,7 @@ int memoryTest() {
   // More on pointers here: http://en.wikipedia.org/wiki/Pointer#C_pointers
 
   // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
-  while ( (byteArray = (byte*) malloc (byteCounter * sizeof(byte))) != NULL ) {
+  while ( (byteArray = (byte*) malloc(byteCounter * sizeof(byte))) != NULL) {
     byteCounter++; // if allocation was successful, then up the count for the next try
     free(byteArray); // free memory after allocating it
   }
@@ -184,14 +215,21 @@ int memoryTest() {
 /*
 Return true if activity was detected
  */
-String readActivity() {
+int readActivity() {
   if (ACTIVITY_DETECTED) {
-    ACTIVITY_DETECTED = false;
-    return "true";
+    ACTIVITY_DETECTED = 0;
+    return 1;
   }
-  return "false";
+  return 0;
 }
 
+/*
+Changes the notify act. action
+ */
+int changeActNotify(String value) {
+  IS_NOTIFY_ACTIVITY = value.toInt();
+  return IS_NOTIFY_ACTIVITY;
+}
 
 /*
 Read temperature
@@ -229,5 +267,5 @@ void printResult(int actId, String value) {
 }
 
 void printResult(int actId, int value) {
-  print(actId + ACTION_VALUE_SEPARATOR + value);
+  print(actId + (String)ACTION_VALUE_SEPARATOR + value);
 }
