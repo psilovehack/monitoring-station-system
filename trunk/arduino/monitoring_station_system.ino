@@ -1,5 +1,6 @@
 #include <DHT.h>
 
+
 //pin declarations
 const int ACTPIN =  50;
 const int DHTPIN = 52;
@@ -8,13 +9,20 @@ const int DHTPIN = 52;
 const int READ_ACTIVITY = 350;
 const int READ_TEMP = 360;
 const int READ_HUMIDITY = 370;
+
 const int LOG = 210;
+
+const int FREE_MEMORY = 110;
+const int RESET_BOARD = 100;
 
 //others programs consts
 const String ACTION_VALUE_SEPARATOR = "=";
 
 //libs declarations
 DHT dht(DHTPIN, DHT11);
+
+//reset funcion
+void (*reset) (void) = 0;
 
 long ACT_INTERVAL = millis();
 
@@ -28,8 +36,11 @@ void setup() {
   dht.begin();
 
   pinMode(ACTPIN, INPUT);
+  analogReference(DEFAULT);
 
   delay(1000);
+
+  Serial.println("Started");
 
 }
 
@@ -42,7 +53,7 @@ void loop() {
 
 /*
 verify activity wit 5 secs interval
-*/
+ */
 void verifyActivity(){
   //verify activity
   if (digitalRead(ACTPIN) && !ACTIVITY_DETECTED && ACT_INTERVAL < millis()) {
@@ -83,7 +94,8 @@ void action() {
     if (action.indexOf(ACTION_VALUE_SEPARATOR) == -1) {
       executeAction(action.toInt());
 
-    } else {
+    } 
+    else {
       executeAction(getActionId(action), getActionValue(action));
     }
 
@@ -95,21 +107,29 @@ void action() {
 Execute a simple action
  */
 void executeAction(int action) {
-  
+
   switch (action) {
-   
-   case READ_ACTIVITY:
-     printResult(READ_ACTIVITY, readActivity());
-   break;
-     
-   case READ_TEMP:
-     printResult(READ_TEMP, readTemp());
-   break;
-     
-   case READ_HUMIDITY:
-     printResult(READ_HUMIDITY, readHumidity());
-   break;
-    
+
+  case READ_ACTIVITY:
+    printResult(READ_ACTIVITY, readActivity());
+    break;
+
+  case READ_TEMP:
+    printResult(READ_TEMP, readTemp());
+    break;
+
+  case READ_HUMIDITY:
+    printResult(READ_HUMIDITY, readHumidity());
+    break;
+
+  case FREE_MEMORY:
+    printResult(FREE_MEMORY, memoryTest());
+    break;
+
+  case RESET_BOARD:
+    reset();
+    break;
+
   }
 
 }
@@ -118,15 +138,15 @@ void executeAction(int action) {
 Execute a action with a value
  */
 void executeAction(int action, String value){
-  
+
   switch (action) {
-   
-    case LOG:
-      log(value);
+
+  case LOG:
+    log(value);
     break;
-    
+
   }
-  
+
 }
 
 /*
@@ -140,7 +160,25 @@ int getActionId(String action) {
 Return the value of a action
  */
 String getActionValue(String action) {
-  return action.substring(action.indexOf(ACTION_VALUE_SEPARATOR)+1);
+  return action.substring(action.indexOf(ACTION_VALUE_SEPARATOR) + 1);
+}
+
+/*
+This function will return the number of bytes currently free in RAM
+ */
+int memoryTest() {
+  int byteCounter = 0; // initialize a counter
+  byte *byteArray; // create a pointer to a byte array
+  // More on pointers here: http://en.wikipedia.org/wiki/Pointer#C_pointers
+
+  // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
+  while ( (byteArray = (byte*) malloc (byteCounter * sizeof(byte))) != NULL ) {
+    byteCounter++; // if allocation was successful, then up the count for the next try
+    free(byteArray); // free memory after allocating it
+  }
+
+  free(byteArray); // also free memory after the function finishes
+  return byteCounter; // send back the highest number of bytes successfully allocated
 }
 
 /*
@@ -153,6 +191,7 @@ String readActivity() {
   }
   return "false";
 }
+
 
 /*
 Read temperature
