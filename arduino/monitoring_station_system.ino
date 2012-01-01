@@ -1,4 +1,3 @@
-#include <EEPROM.h>
 #include <DHT.h>
 
 //reset funcion
@@ -75,7 +74,7 @@ void setup() {
 
   delay(1000);
 
-  Serial.println("Started");
+  Serial.print("Started");
   unload();
 }
 
@@ -92,10 +91,13 @@ verify activity wit 5 secs interval
 void verifyActivity(){
   //verify activity
   if (digitalRead(ACTPIN) && !ACTIVITY_DETECTED && ACT_INTERVAL_THREAD < millis()) {
+    load();
     ACTIVITY_DETECTED = 1;
     ACT_INTERVAL_THREAD = millis() + 5000;
     if (IS_NOTIFY_ACTIVITY)
       printResult(READ_ACTIVITY, readActivity());
+      
+    unload();
   }
 }
 
@@ -110,7 +112,7 @@ String readSerial() {
 
   while (Serial.available()) {
     recData += (char)Serial.read();
-    delay(10);
+    delay(5);
   }
   return recData; 
 }
@@ -129,7 +131,6 @@ void action() {
     //action without value
     if (action.indexOf(ACTION_VALUE_SEPARATOR) == -1) {
       executeAction(action.toInt());
-
     } 
     else {
       executeAction(getActionId(action), getActionValue(action));
@@ -211,6 +212,7 @@ String getActionValue(String action) {
 This function will return the number of bytes currently free in RAM
  */
 int memoryTest() {
+  load();
   int byteCounter = 0; // initialize a counter
   byte *byteArray; // create a pointer to a byte array
 
@@ -221,6 +223,7 @@ int memoryTest() {
   }
 
   free(byteArray); // also free memory after the function finishes
+  unload();
   return byteCounter; // send back the highest number of bytes successfully allocated
 }
 
@@ -247,23 +250,31 @@ int changeActNotify(String value) {
 Read temperature
  */
 int readTemp() {
-  return (int)dht.readTemperature();
+  load();
+  int t = dht.readTemperature();
+  unload();
+  return t;
+  
 }
 
 /*
 read humidity
  */
 int readHumidity() {
-  return (int)dht.readHumidity();
+  load();
+  int h = dht.readHumidity();
+  unload();
+  return h;
 }
 
 /*
 Function to log data
  */
 void log(String data) {
-
+  load();
   //por enquanto somente sera printado
   print(data);
+  unload();
 
 }
 
@@ -271,7 +282,9 @@ void log(String data) {
 Prints a value in main serial port
  */
 void print(String data) {
-  Serial.println(data); 
+  load();
+  Serial.print(data);
+  unload();
 }
 
 void printResult(int actId, String value) {
