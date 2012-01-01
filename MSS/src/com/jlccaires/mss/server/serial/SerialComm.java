@@ -1,17 +1,21 @@
 package com.jlccaires.mss.server.serial;
 
 
+import gnu.io.CommPortIdentifier;
+import gnu.io.SerialPort;
+import gnu.io.SerialPortEvent;
+import gnu.io.SerialPortEventListener;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import gnu.io.CommPortIdentifier; 
-import gnu.io.SerialPort;
-import gnu.io.SerialPortEvent; 
-import gnu.io.SerialPortEventListener; 
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Scanner;
 
 public class SerialComm implements SerialPortEventListener {
-	
-	SerialPort serialPort;
+
+	private SerialPort serialPort;
 	/** The port we're normally going to use. */
 	private static final String PORT_NAMES[] = { 
 		"/dev/tty.usbserial-A9007UX1", // Mac OS X
@@ -27,13 +31,23 @@ public class SerialComm implements SerialPortEventListener {
 	/** Default bits per second for COM port. */
 	private static final int DATA_RATE = 9600;
 
-	public void initialize() {
+	private ArrayList<DataReceivedListener> dataListeners;
+
+	private boolean disableListener = false;
+
+	public SerialComm() {
+		initialize();
+	}
+
+	private void initialize() {
+
+		dataListeners = new ArrayList<DataReceivedListener>();
 		CommPortIdentifier portId = null;
 		Enumeration<?> portEnum = CommPortIdentifier.getPortIdentifiers();
 
 		// iterate through, looking for the port
 		while (portEnum.hasMoreElements()) {
-			
+
 			CommPortIdentifier currPortId = (CommPortIdentifier) portEnum.nextElement();
 			for (String portName : PORT_NAMES) {
 				if (currPortId.getName().equals(portName)) {
@@ -65,9 +79,11 @@ public class SerialComm implements SerialPortEventListener {
 			// add event listeners
 			serialPort.addEventListener(this);
 			serialPort.notifyOnDataAvailable(true);
+
 		} catch (Exception e) {
 			System.err.println(e.toString());
 		}
+
 	}
 
 	/**
@@ -81,32 +97,87 @@ public class SerialComm implements SerialPortEventListener {
 		}
 	}
 
-	/**
-	 * Handle an event on the serial port. Read the data and print it.
-	 */
-	public synchronized void serialEvent(SerialPortEvent oEvent) {
-		
-		if (oEvent.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
-			
-			try {
-				
-				Thread.sleep(200);
-				int available = input.available();
-				byte chunk[] = new byte[available];
-				input.read(chunk, 0, available);
+	public String print(String action) {
 
-				System.out.println(new String(chunk));
-				
-			} catch (Exception e) {
-				System.err.println(e.toString());
-			}
+		try {
+			//disable listener on print to return the value
+			disableListener = true;
+			output.write(action.getBytes());
+			return getSerialData();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
 		}
-		// Ignore all the other eventTypes, but you should consider the other ones.
+
 	}
 
+	/**
+	 * Handle an event on the serial port.
+	 */
+	public synchronized void serialEvent(SerialPortEvent oEvent) {
+
+		if (oEvent.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
+
+			if(!disableListener){
+
+				for (DataReceivedListener listener : dataListeners)
+					listener.dataReceived(getSerialData());
+
+			} else {
+				disableListener = false;
+			}
+
+		}
+
+	}
+
+	private String getSerialData() {
+
+		try {
+
+			String data = "";
+			while (input.available() > 0) {
+
+				Thread.sleep(10);
+				data += (char)input.read();
+			}
+
+			return data;
+
+		} catch (Exception e) {
+			System.err.println(e.toString());
+		}
+		return null;
+
+	}
+
+	public void addDataReceivedListener(DataReceivedListener listener){
+		dataListeners.add(listener);
+	}
+
+
 	public static void main(String[] args) throws Exception {
-		SerialComm main = new SerialComm();
-		main.initialize();
-		System.out.println("Started");
+		final SerialComm main = new SerialComm();
+
+		main.addDataReceivedListener(new DataReceivedListener() {
+
+			public void dataReceived(String data) {
+				System.out.println(data);
+			}
+		});
+
+		new Thread(){
+			public void run() {
+				Scanner sc = new Scanner(System.in);
+
+				while (true) {
+					System.out.println(main.print(sc.next()));
+				}
+
+			}
+
+		}.run();
+
 	}
 }
