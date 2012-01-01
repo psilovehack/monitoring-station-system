@@ -1,15 +1,28 @@
+#include <EEPROM.h>
 #include <DHT.h>
 
-//pin declarations
+//reset funcion
+void (*reset) (void) = 0;
+
+//######### pin declarations ######
+
+//activity sensor
 const int ACTPIN = 50;
+
+//dth temp and humidity sensor
 const int DHTPIN = 52;
+
+//onboard led pin
+const int LOADPIN = 13;
+
+//######### pin declarations ######
 
 //libs declarations
 DHT dht(DHTPIN, DHT11);
 
 //######## action codes #######
 
-//hardware acts
+//system acts
 const int RESET_BOARD = 100;
 const int FREE_MEMORY = 110;
 const int UP_TIME = 120;
@@ -23,6 +36,7 @@ const int ACTIVITY_NOTIFY_STATUS = 352;
 const int READ_TEMP = 360;
 const int READ_HUMIDITY = 370;
 
+//others actions
 const int LOG = 210;
 
 //####### end actions declarations #########
@@ -34,32 +48,35 @@ int IS_NOTIFY_ACTIVITY = 1;
 
 // ##### end actions properties #######
 
-//others programs consts
+//###### others programs consts ########
+
 #define ACTION_VALUE_SEPARATOR '='
 #define END_LINE_CHAR ';'
 
-//reset funcion
-void (*reset) (void) = 0;
+//###### end others programs consts ########
 
 //interval for verify activity sensor. incremented by 5000 in function
 long ACT_INTERVAL_THREAD = millis();
 
 //local vars declarations
 int ACTIVITY_DETECTED = 0;
+const int EEPROM_SIZE = 4096;
 
 
 void setup() {
+  load();
+  
+  pinMode(ACTPIN, INPUT);
+  analogReference(DEFAULT);
+  pinMode(LOADPIN, OUTPUT);
 
   Serial.begin(9600);
   dht.begin();
 
-  pinMode(ACTPIN, INPUT);
-  analogReference(DEFAULT);
-
   delay(1000);
 
   Serial.println("Started");
-
+  unload();
 }
 
 void loop() {
@@ -150,11 +167,7 @@ void executeAction(int action) {
     break;
 
   case UP_TIME:
-    printResult(UP_TIME, millis()); 
-    break;
-
-  case RESET_BOARD:
-    reset();
+    printResult(UP_TIME, millis()/1000); 
     break;
 
   }
@@ -175,7 +188,7 @@ void executeAction(int action, String value){
   case ACTIVITY_NOTIFY_CHANGE:
     printResult(ACTIVITY_NOTIFY_CHANGE, changeActNotify(value));
     break;
-
+    
   }
 
 }
@@ -200,7 +213,6 @@ This function will return the number of bytes currently free in RAM
 int memoryTest() {
   int byteCounter = 0; // initialize a counter
   byte *byteArray; // create a pointer to a byte array
-  // More on pointers here: http://en.wikipedia.org/wiki/Pointer#C_pointers
 
   // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
   while ( (byteArray = (byte*) malloc(byteCounter * sizeof(byte))) != NULL) {
@@ -268,4 +280,25 @@ void printResult(int actId, String value) {
 
 void printResult(int actId, int value) {
   print(actId + (String)ACTION_VALUE_SEPARATOR + value);
+}
+
+/*
+Turn on the load led
+*/
+void load() {
+  loading(1);
+}
+
+/*
+Turn off the load led
+*/
+void unload() {
+  loading(0);
+}
+
+/*
+Turn on or off the load led
+*/
+void loading(int on) {
+    digitalWrite(LOADPIN, on);
 }
