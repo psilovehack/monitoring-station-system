@@ -1,0 +1,42 @@
+#labels Featured,Phase-Implementation,Phase-Deploy
+<b>Action code</b> is a integer number that allows communication between arduino board and host pc.
+
+In the <b>arduino</b> code has two functions that separates the action value if the action comes with a value.
+
+{{{
+if (action.indexOf(ACTION_VALUE_SEPARATOR) == -1) {
+ executeAction(action.toInt());
+} 
+else {
+ executeAction(getActionId(action), getActionValue(action));
+}
+}}}
+
+The project in actual version(r19) support the following action codes:
+
+<b>Activity sensor:</b>
+
+ * READ_ACTIVITY = 350 (not need value)
+  # This action read and return 1 if activity was detected through the infrared sensor.
+  # Returns {{{350=1}}} (if auto-notifying is enabled) case activity was detected.
+ * ACTIVITY_NOTIFY_CHANGE = 351 (0 or 1)
+  # Changes the flag to auto-notifying via serial that activity was detected.
+ * ACTIVITY_NOTIFY_STATUS = 352 (not need value)
+  # Value of auto-notifying status.
+
+<b>Temp. and humidity sensor:</b>
+ * READ_TEMP = 360 (not need value)
+  # Returns the temperature (in oC)
+ * READ_HUMIDITY = 370 (not need value)
+  # Reads the humidity (%)
+
+<b>System actions:</b>
+ * RESET_BOARD = 100 (not need value)
+  # Resets the software
+ * FREE_MEMORY = 100 (not need value)
+  # Executes malloc function and return the free memory available after operation
+ * UP_TIME = 120 (not need value)
+  # Returns system startup time (same as millis() arduino function)
+
+ * LOG = 210
+  # Not implemented yet. Only prints the value.
