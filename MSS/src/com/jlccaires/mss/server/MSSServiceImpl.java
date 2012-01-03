@@ -4,7 +4,10 @@ import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.jlccaires.mss.client.MSSService;
 import com.jlccaires.mss.server.serial.SerialComm;
 
-public class MSSServiceImpl extends RemoteServiceServlet implements MSSService {
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+
+public class MSSServiceImpl extends RemoteServiceServlet implements MSSService, ServletContextListener {
 
 	private static final long serialVersionUID = -111362649763187804L;
 	
@@ -13,6 +16,15 @@ public class MSSServiceImpl extends RemoteServiceServlet implements MSSService {
 	public String sendCommand(String command) {
 
 		return com.print(command);
+	}
+	
+	public void contextDestroyed(ServletContextEvent arg0) {
+		runningThread = false;
+	}
+	public void contextInitialized(ServletContextEvent arg0) {
+		start();
+		//define o local da aplicacao no campo da servlet principal
+		SigelServiceImpl.sysPath = arg0.getServletContext().getRealPath("/");
 	}
 
 }
