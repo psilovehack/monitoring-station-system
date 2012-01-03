@@ -19,12 +19,10 @@ public class MSSServiceImpl extends RemoteServiceServlet implements MSSService, 
 	}
 	
 	public void contextDestroyed(ServletContextEvent arg0) {
-		runningThread = false;
+		com.close();
 	}
 	public void contextInitialized(ServletContextEvent arg0) {
-		start();
-		//define o local da aplicacao no campo da servlet principal
-		SigelServiceImpl.sysPath = arg0.getServletContext().getRealPath("/");
+		
 	}
 
 }
