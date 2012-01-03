@@ -10,7 +10,7 @@
 
 	<servlet-mapping>
 		<servlet-name>mssService</servlet-name>
-		<url-pattern>/mssService</url-pattern>
+		<url-pattern>/mss/mssService</url-pattern>
 	</servlet-mapping>
 
 	<welcome-file-list>
