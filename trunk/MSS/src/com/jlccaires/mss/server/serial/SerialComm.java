@@ -6,12 +6,10 @@ import gnu.io.SerialPort;
 import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Scanner;
 
 public class SerialComm implements SerialPortEventListener {
 
@@ -103,9 +101,12 @@ public class SerialComm implements SerialPortEventListener {
 			//disable listener on print to return the value
 			disableListener = true;
 			output.write(action.getBytes());
+			
+			Thread.sleep(100);
+			
 			return getSerialData();
 
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -156,28 +157,4 @@ public class SerialComm implements SerialPortEventListener {
 		dataListeners.add(listener);
 	}
 
-
-	public static void main(String[] args) throws Exception {
-		final SerialComm main = new SerialComm();
-
-		main.addDataReceivedListener(new DataReceivedListener() {
-
-			public void dataReceived(String data) {
-				System.out.println(data);
-			}
-		});
-
-		new Thread(){
-			public void run() {
-				Scanner sc = new Scanner(System.in);
-
-				while (true) {
-					System.out.println(main.print(sc.next()));
-				}
-
-			}
-
-		}.run();
-
-	}
 }
