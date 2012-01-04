@@ -10,16 +10,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 
 public class SerialComm implements SerialPortEventListener {
 
 	private SerialPort serialPort;
-	/** The port we're normally going to use. */
-	private static final String PORT_NAMES[] = { 
-		"/dev/tty.usbserial-A9007UX1", // Mac OS X
-		"/dev/ttyUSB0", // Linux
-		"COM3", // Windows
-	};
 	/** Buffered input stream from the port */
 	private InputStream input;
 	/** The output stream to the port */
@@ -29,40 +24,49 @@ public class SerialComm implements SerialPortEventListener {
 	/** Default bits per second for COM port. */
 	private static final int DATA_RATE = 9600;
 
-	private ArrayList<DataReceivedListener> dataListeners;
+	private ArrayList<DataReceivedListener> dataListeners = new ArrayList<DataReceivedListener>();
+
+	private HashMap<String, CommPortIdentifier> portsMap = new HashMap<String, CommPortIdentifier>(); 
 
 	private boolean disableListener = false;
 
 	public SerialComm() {
-		initialize();
 	}
 
-	private void initialize() {
+	public ArrayList<String> listPorts() {
+		
+		portsMap.clear();
 
-		dataListeners = new ArrayList<DataReceivedListener>();
-		CommPortIdentifier portId = null;
 		Enumeration<?> portEnum = CommPortIdentifier.getPortIdentifiers();
+		
+		 ArrayList<String> portIdList = new ArrayList<String>();
 
 		// iterate through, looking for the port
 		while (portEnum.hasMoreElements()) {
 
-			CommPortIdentifier currPortId = (CommPortIdentifier) portEnum.nextElement();
-			for (String portName : PORT_NAMES) {
-				if (currPortId.getName().equals(portName)) {
-					portId = currPortId;
-					break;
-				}
+			CommPortIdentifier currPort = (CommPortIdentifier) portEnum.nextElement();
+
+			if(currPort.getPortType() == CommPortIdentifier.PORT_SERIAL) {
+				portsMap.put(currPort.getName(), currPort);
+				portIdList.add(currPort.getName());
 			}
 		}
+		return portIdList;
 
-		if (portId == null) {
+	}
+
+	public void initialize(String portId) {
+		
+		CommPortIdentifier port = portsMap.get(portId);
+
+		if (port == null) {
 			System.out.println("Could not find COM port.");
 			return;
 		}
 
 		try {
 			// open serial port, and use class name for the appName.
-			serialPort = (SerialPort) portId.open(this.getClass().getName(), TIME_OUT);
+			serialPort = (SerialPort) port.open(this.getClass().getName(), TIME_OUT);
 
 			// set port parameters
 			serialPort.setSerialPortParams(DATA_RATE,
@@ -101,9 +105,9 @@ public class SerialComm implements SerialPortEventListener {
 			//disable listener on print to return the value
 			disableListener = true;
 			output.write(action.getBytes());
-			
+
 			Thread.sleep(100);
-			
+
 			return getSerialData();
 
 		} catch (Exception e) {
