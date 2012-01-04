@@ -1,5 +1,7 @@
 package com.jlccaires.mss.server;
 
+import java.util.ArrayList;
+
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.jlccaires.mss.client.MSSService;
 import com.jlccaires.mss.server.serial.SerialComm;
@@ -18,11 +20,19 @@ public class MSSServiceImpl extends RemoteServiceServlet implements MSSService, 
 		return com.print(command);
 	}
 	
+	public ArrayList<String> getPorts() {
+		return com.listPorts();
+	}
+	
+	public void connect(String portId) {
+		com.initialize(portId);
+	}
+	
 	public void contextDestroyed(ServletContextEvent arg0) {
 		com.close();
+		com = null;
 	}
 	public void contextInitialized(ServletContextEvent arg0) {
-		
 	}
 
 }
