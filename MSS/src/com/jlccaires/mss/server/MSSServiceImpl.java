@@ -24,8 +24,8 @@ public class MSSServiceImpl extends RemoteServiceServlet implements MSSService, 
 		return com.listPorts();
 	}
 	
-	public void connect(String portId) {
-		com.initialize(portId);
+	public String connect(String portId) {
+		return com.initialize(portId);
 	}
 	
 	public void contextDestroyed(ServletContextEvent arg0) {

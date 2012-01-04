@@ -10,5 +10,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="war/WEB-INF/lib/mail.jar"/>
 	<classpathentry kind="lib" path="war/WEB-INF/lib/RXTXcomm.jar"/>
+	<classpathentry kind="lib" path="war/WEB-INF/lib/gxt-2.2.4-gwt22.jar"/>
 	<classpathentry kind="output" path="war/WEB-INF/classes"/>
 </classpath>

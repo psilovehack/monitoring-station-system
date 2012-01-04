@@ -24,8 +24,10 @@ public class SerialComm implements SerialPortEventListener {
 	/** Default bits per second for COM port. */
 	private static final int DATA_RATE = 9600;
 
+	/** Array that stores the added listeners*/
 	private ArrayList<DataReceivedListener> dataListeners = new ArrayList<DataReceivedListener>();
 
+	/**Map with the listed ports*/
 	private HashMap<String, CommPortIdentifier> portsMap = new HashMap<String, CommPortIdentifier>(); 
 
 	private boolean disableListener = false;
@@ -55,13 +57,12 @@ public class SerialComm implements SerialPortEventListener {
 
 	}
 
-	public void initialize(String portId) {
+	public String initialize(String portId) {
 		
 		CommPortIdentifier port = portsMap.get(portId);
 
 		if (port == null) {
-			System.out.println("Could not find COM port.");
-			return;
+			return "Could not find COM port.";
 		}
 
 		try {
@@ -81,9 +82,12 @@ public class SerialComm implements SerialPortEventListener {
 			// add event listeners
 			serialPort.addEventListener(this);
 			serialPort.notifyOnDataAvailable(true);
+			
+			return "Connected.";
 
 		} catch (Exception e) {
-			System.err.println(e.toString());
+			e.printStackTrace();
+			return e.toString();
 		}
 
 	}
@@ -112,7 +116,7 @@ public class SerialComm implements SerialPortEventListener {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			return null;
+			return e.toString();
 		}
 
 	}
@@ -151,9 +155,10 @@ public class SerialComm implements SerialPortEventListener {
 			return data;
 
 		} catch (Exception e) {
-			System.err.println(e.toString());
+			e.printStackTrace();
+			return e.toString();
 		}
-		return null;
+		
 
 	}
 
