@@ -10,5 +10,5 @@ public interface MSSServiceAsync {
 
 	void getPorts(AsyncCallback<ArrayList<String>> callback);
 
-	void connect(String portId, AsyncCallback<Void> callback);
+	void connect(String portId, AsyncCallback<String> callback);
 }

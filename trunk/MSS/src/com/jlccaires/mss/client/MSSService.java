@@ -12,5 +12,5 @@ public interface MSSService extends RemoteService {
 	
 	public ArrayList<String> getPorts();
 	
-	public void connect(String portId);
+	public String connect(String portId);
 }
