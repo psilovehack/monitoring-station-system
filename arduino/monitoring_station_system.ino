@@ -2,67 +2,88 @@
 #include <SD.h>
 #include <DS1302.h>
 
+
 //reset funcion
 void (*reset) (void) = 0;
 
+
 //######### pin declarations ######
+
 
 //activity sensor
 const int ACTPIN = 24;
 
+
 //dth temp and humidity sensor
 const int DHTPIN = 22;
 
+
 //onboard led pin
 const int LOADPIN = 13;
+
 
 //RTC spi pins
 int CE_PIN   = 6;
 int IO_PIN   = 4;
 int SCLK_PIN = 3;
 
+
 //######### pin declarations ######
+
 
 //libs declarations
 DHT dht(DHTPIN, DHT11);
 DS1302 rtc(CE_PIN, IO_PIN, SCLK_PIN);
 
+
 //SD card lib
 File file;
 Time t;
 
+
 //######## action codes #######
+
 
 //system acts
 const int RESET_BOARD = 100;
 const int FREE_MEMORY = 110;
 const int UP_TIME = 120;
 
+
 //activity acts
 const int READ_ACTIVITY = 350;
 const int ACTIVITY_NOTIFY_CHANGE = 351;
 const int ACTIVITY_NOTIFY_STATUS = 352;
 
+
 //evvironment acts
 const int READ_TEMP = 360;
 const int READ_HUMIDITY = 370;
 
+
 //others actions
 const int LOG = 210;
 
+
 //####### end actions declarations #########
 
+
 // ##### actions properties #######
+
 
 //flag to notify activity (or not) via serial 
 int IS_NOTIFY_ACTIVITY = 0;
 
+
 // ##### end actions properties #######
+
 
 //###### others programs consts ########
 
+
 #define ACTION_VALUE_SEPARATOR '='
 #define END_LINE_CHAR ';'
+
 
 //###### end others programs consts ########
 
@@ -101,7 +122,7 @@ void loop() {
 
   action();
   verifyActivity();
-  logging();
+  logging(0);
 
 
 }//end loop
@@ -115,6 +136,7 @@ void verifyActivity(){
     load();
     ACTIVITY_DETECTED = 1;
     ACT_INTERVAL_THREAD = millis() + 5000;
+    logging(1);
     if (IS_NOTIFY_ACTIVITY)
       printResult(READ_ACTIVITY, readActivity());
 
@@ -122,10 +144,9 @@ void verifyActivity(){
   }
 }
 
-void logging() {
+void logging(int force) {
 
-
-  if (LOG_INTERVAL_THREAD < millis()) {
+  if (LOG_INTERVAL_THREAD < millis() || force) {
 
     String out = getTime() + " H: " + readHumidity() + " T: " + readTemp() + " A: " + readActivity();
 
@@ -137,16 +158,31 @@ void logging() {
 
 }
 
+/**
+ * Return a string in bazillian format
+ */
 String getTime() {
-  
+
   t = rtc.time();
 
   char out[20];
-  snprintf(out, 20, "%04d-%02d-%02d %02d:%02d:%02d",
-  t.yr, t.mon, t.date, t.hr, t.min, t.sec);
+  snprintf(out, 20, "%02d/%02d/%04d %02d:%02d:%02d",
+  t.date, t.mon, t.yr, t.hr, t.min, t.sec);
 
   return String(out);
+}
 
+/**
+ * Returns a string representation of date (dd/MM/yyyy)
+ */
+String getDate() {
+
+  t = rtc.time();
+
+  char out[20];
+  snprintf(out, 20, "%02d-%02d-%04d", t.date, t.mon, t.yr);
+
+  return String(out);
 }
 
 /*
@@ -182,10 +218,9 @@ void action() {
     else {
       executeAction(getActionId(action), getActionValue(action));
     }
-
   }
-
 }
+
 
 /*
 Execute a simple action
@@ -217,9 +252,7 @@ void executeAction(int action) {
   case UP_TIME:
     printResult(UP_TIME, millis()/1000); 
     break;
-
   }
-
 }
 
 /*
@@ -236,9 +269,7 @@ void executeAction(int action, String value){
   case ACTIVITY_NOTIFY_CHANGE:
     printResult(ACTIVITY_NOTIFY_CHANGE, changeActNotify(value));
     break;
-
   }
-
 }
 
 /*
@@ -255,6 +286,7 @@ String getActionValue(String action) {
   return action.substring(action.indexOf(ACTION_VALUE_SEPARATOR) + 1);
 }
 
+
 /*
 This function will return the number of bytes currently free in RAM
  */
@@ -263,16 +295,19 @@ int memoryTest() {
   int byteCounter = 0; // initialize a counter
   byte *byteArray; // create a pointer to a byte array
 
+
     // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
   while ( (byteArray = (byte*) malloc(byteCounter * sizeof(byte))) != NULL) {
     byteCounter++; // if allocation was successful, then up the count for the next try
     free(byteArray); // free memory after allocating it
   }
 
+
   free(byteArray); // also free memory after the function finishes
   unload();
   return byteCounter; // send back the highest number of bytes successfully allocated
 }
+
 
 /*
 Return true if activity was detected
@@ -285,6 +320,7 @@ int readActivity() {
   return 0;
 }
 
+
 /*
 Changes the notify act. action
  */
@@ -292,6 +328,7 @@ int changeActNotify(String value) {
   IS_NOTIFY_ACTIVITY = value.toInt();
   return IS_NOTIFY_ACTIVITY;
 }
+
 
 /*
 Read temperature
@@ -302,7 +339,9 @@ int readTemp() {
   unload();
   return t;
 
+
 }
+
 
 /*
 read humidity
@@ -313,6 +352,7 @@ int readHumidity() {
   unload();
   return h;
 }
+
 
 /*
 Function to log data
@@ -325,8 +365,8 @@ void log(String data) {
   file.close();
 
   unload();
-
 }
+
 
 /*
 Prints a value in main serial port
@@ -340,6 +380,7 @@ void print(String data) {
 void printResult(int actId, String value) {
   print(actId + ACTION_VALUE_SEPARATOR + value);
 }
+
 
 void printResult(int actId, int value) {
   print(actId + (String)ACTION_VALUE_SEPARATOR + value);
@@ -365,3 +406,4 @@ Turn on or off the load led
 void loading(int on) {
   digitalWrite(LOADPIN, on);
 }
+
