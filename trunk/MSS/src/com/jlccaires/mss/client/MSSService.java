@@ -8,9 +8,11 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 @RemoteServiceRelativePath("mssService")
 public interface MSSService extends RemoteService {
 	
-	public String sendCommand(String command);
+	String sendCommand(String command);
 	
-	public ArrayList<String> getPorts();
+	ArrayList<String> getPorts();
 	
-	public String connect(String portId);
+	String connect(String portId) throws Exception;
+
+	String close();
 }

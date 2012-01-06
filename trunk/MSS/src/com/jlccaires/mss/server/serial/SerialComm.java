@@ -57,7 +57,7 @@ public class SerialComm implements SerialPortEventListener {
 
 	}
 
-	public String initialize(String portId) {
+	public String connect(String portId) {
 		
 		CommPortIdentifier port = portsMap.get(portId);
 
