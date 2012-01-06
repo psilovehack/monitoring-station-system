@@ -15,17 +15,35 @@ public class MSSServiceImpl extends RemoteServiceServlet implements MSSService, 
 	
 	SerialComm com = new SerialComm();
 
+	/**
+	 * Sends a command to serial port
+	 */
 	public String sendCommand(String command) {
 
 		return com.print(command);
 	}
 	
+	/**
+	 * List all comports on server
+	 */
 	public ArrayList<String> getPorts() {
 		return com.listPorts();
 	}
 	
-	public String connect(String portId) {
-		return com.initialize(portId);
+	/**
+	 * Connects to a specific port
+	 */
+	public String connect(String portId) throws Exception{
+		return com.connect(portId);
+	}
+	
+	/**
+	 * Closes actual connection
+	 */
+	public String close() {
+		com.close();
+		return "closed.";
+		
 	}
 	
 	public void contextDestroyed(ServletContextEvent arg0) {

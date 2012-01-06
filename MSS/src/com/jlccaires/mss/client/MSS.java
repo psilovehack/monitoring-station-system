@@ -25,42 +25,63 @@ public class MSS implements EntryPoint {
 
 	private final MSSServiceAsync service = GWT.create(MSSService.class);
 
+	private boolean isConnected = false;
+	
+	private TextArea history;
+
 	public void onModuleLoad() {
-		
+
 		final SimpleComboBox<String> comboPorts = new SimpleComboBox<String>();
 		comboPorts.setTriggerAction(TriggerAction.ALL);
 		comboPorts.setEditable(false);
 		comboPorts.setFieldLabel("COM Ports");
-		
+
 		service.getPorts(new AsyncCallback<ArrayList<String>>() {
-			
+
 			public void onSuccess(ArrayList<String> result) {
 				comboPorts.add(result);
 			}
-			
+
 			public void onFailure(Throwable caught) {
 				failure(caught);
 			}
 		});
-		
-		final TextArea history = new TextArea();
+
+		history = new TextArea();
 		history.setReadOnly(true);
-		
-		Button btnConnect = new Button("Connect");
+
+		final Button btnConnect = new Button("Connect");
 		btnConnect.addSelectionListener(new SelectionListener<ButtonEvent>() {
-			
+
 			public void componentSelected(ButtonEvent ce) {
-				
-				service.connect(comboPorts.getValue().getValue(), new AsyncCallback<String>() {
-					public void onSuccess(String result) {
-						history.setValue((history.getValue() == null ?
-								"" : history.getValue()) + result + "\n");
-					}
-					public void onFailure(Throwable caught) {
-						failure(caught);
-					}
-				} );
-				
+
+				if (!isConnected)
+
+					service.connect(comboPorts.getValue().getValue(), new AsyncCallback<String>() {
+						public void onSuccess(String result) {
+							
+							appendHistory(result);
+							btnConnect.setText("Disconnect");
+							isConnected = true;
+
+						}
+						public void onFailure(Throwable caught) {
+							failure(caught);
+						}
+					});
+
+				else
+
+					service.close(new AsyncCallback<String>() {
+						public void onSuccess(String result) {
+							btnConnect.setText("Connect");
+							isConnected = false;
+						}
+						public void onFailure(Throwable caught) {
+							failure(caught);
+						}
+					});
+
 			}
 		});
 
@@ -70,7 +91,7 @@ public class MSS implements EntryPoint {
 			public void componentKeyDown(ComponentEvent event) {
 
 				if (event.getKeyCode() == 13 || event.getKeyCode() == 52) {
-					
+
 					command.disable();
 
 					service.sendCommand(command.getValue(), new AsyncCallback<String>() {
@@ -91,7 +112,7 @@ public class MSS implements EntryPoint {
 				}
 			}
 		});
-		
+
 		ToolBar tbSerial = new ToolBar();
 		tbSerial.setSpacing(20);
 		tbSerial.add(comboPorts);
@@ -108,9 +129,14 @@ public class MSS implements EntryPoint {
 
 		RootPanel.get().add(w);
 	}
-	
+
 	private void failure(Throwable caught) {
 		MessageBox.alert("Error", caught.toString(), null);
+	}
+	
+	private void appendHistory(String result) {
+		history.setValue((history.getValue() == null ?
+				"" : history.getValue()) + result + "\n");
 	}
 
 }
