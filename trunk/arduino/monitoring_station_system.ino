@@ -1,4 +1,6 @@
 #include <DHT.h>
+#include <SD.h>
+#include <DS1302.h>
 
 //reset funcion
 void (*reset) (void) = 0;
@@ -6,18 +8,28 @@ void (*reset) (void) = 0;
 //######### pin declarations ######
 
 //activity sensor
-const int ACTPIN = 50;
+const int ACTPIN = 24;
 
 //dth temp and humidity sensor
-const int DHTPIN = 52;
+const int DHTPIN = 22;
 
 //onboard led pin
 const int LOADPIN = 13;
+
+//RTC spi pins
+int CE_PIN   = 6;
+int IO_PIN   = 4;
+int SCLK_PIN = 3;
 
 //######### pin declarations ######
 
 //libs declarations
 DHT dht(DHTPIN, DHT11);
+DS1302 rtc(CE_PIN, IO_PIN, SCLK_PIN);
+
+//SD card lib
+File file;
+Time t;
 
 //######## action codes #######
 
@@ -43,7 +55,7 @@ const int LOG = 210;
 // ##### actions properties #######
 
 //flag to notify activity (or not) via serial 
-int IS_NOTIFY_ACTIVITY = 1;
+int IS_NOTIFY_ACTIVITY = 0;
 
 // ##### end actions properties #######
 
@@ -57,6 +69,8 @@ int IS_NOTIFY_ACTIVITY = 1;
 //interval for verify activity sensor. incremented by 5000 in function
 long ACT_INTERVAL_THREAD = millis();
 
+long LOG_INTERVAL_THREAD = millis();
+
 //local vars declarations
 int ACTIVITY_DETECTED = 0;
 const int EEPROM_SIZE = 4096;
@@ -64,17 +78,22 @@ const int EEPROM_SIZE = 4096;
 
 void setup() {
   load();
-  
+
   pinMode(ACTPIN, INPUT);
-  analogReference(DEFAULT);
   pinMode(LOADPIN, OUTPUT);
+  pinMode(53, OUTPUT);
 
   Serial.begin(9600);
   dht.begin();
 
+  if (!SD.begin(5)) {
+    Serial.println("sd card failed!");
+    return;
+  }
+
   delay(1000);
 
-  Serial.print("Started");
+  Serial.println("Started");
   unload();
 }
 
@@ -82,6 +101,8 @@ void loop() {
 
   action();
   verifyActivity();
+  logging();
+
 
 }//end loop
 
@@ -96,11 +117,37 @@ void verifyActivity(){
     ACT_INTERVAL_THREAD = millis() + 5000;
     if (IS_NOTIFY_ACTIVITY)
       printResult(READ_ACTIVITY, readActivity());
-      
+
     unload();
   }
 }
 
+void logging() {
+
+
+  if (LOG_INTERVAL_THREAD < millis()) {
+
+    String out = getTime() + " H: " + readHumidity() + " T: " + readTemp() + " A: " + readActivity();
+
+    Serial.println(out);
+
+    log(out);
+    LOG_INTERVAL_THREAD += 30000;
+  }
+
+}
+
+String getTime() {
+  
+  t = rtc.time();
+
+  char out[20];
+  snprintf(out, 20, "%04d-%02d-%02d %02d:%02d:%02d",
+  t.yr, t.mon, t.date, t.hr, t.min, t.sec);
+
+  return String(out);
+
+}
 
 /*
 Function to read serial data.
@@ -189,7 +236,7 @@ void executeAction(int action, String value){
   case ACTIVITY_NOTIFY_CHANGE:
     printResult(ACTIVITY_NOTIFY_CHANGE, changeActNotify(value));
     break;
-    
+
   }
 
 }
@@ -216,7 +263,7 @@ int memoryTest() {
   int byteCounter = 0; // initialize a counter
   byte *byteArray; // create a pointer to a byte array
 
-  // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
+    // use the malloc function to repeatedly attempt allocating a certain number of bytes to memory
   while ( (byteArray = (byte*) malloc(byteCounter * sizeof(byte))) != NULL) {
     byteCounter++; // if allocation was successful, then up the count for the next try
     free(byteArray); // free memory after allocating it
@@ -254,7 +301,7 @@ int readTemp() {
   int t = dht.readTemperature();
   unload();
   return t;
-  
+
 }
 
 /*
@@ -272,8 +319,11 @@ Function to log data
  */
 void log(String data) {
   load();
-  //por enquanto somente sera printado
-  print(data);
+
+  file = SD.open("mss.log", FILE_WRITE);
+  file.println(data);
+  file.close();
+
   unload();
 
 }
@@ -283,7 +333,7 @@ Prints a value in main serial port
  */
 void print(String data) {
   load();
-  Serial.print(data);
+  Serial.println(data);
   unload();
 }
 
@@ -297,21 +347,21 @@ void printResult(int actId, int value) {
 
 /*
 Turn on the load led
-*/
+ */
 void load() {
   loading(1);
 }
 
 /*
 Turn off the load led
-*/
+ */
 void unload() {
   loading(0);
 }
 
 /*
 Turn on or off the load led
-*/
+ */
 void loading(int on) {
-    digitalWrite(LOADPIN, on);
+  digitalWrite(LOADPIN, on);
 }
