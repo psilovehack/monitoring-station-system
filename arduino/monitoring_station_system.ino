@@ -1,7 +1,8 @@
+#include <EEPROM.h>
 #include <DHT.h>
 #include <SD.h>
 #include <DS1302.h>
-
+#include <Config.h>
 
 //reset funcion
 void (*reset) (void) = 0;
@@ -71,7 +72,7 @@ const int LOG = 210;
 // ##### actions properties #######
 
 
-//flag to notify activity (or not) via serial 
+//flag to notify activity (or not) via serial
 int IS_NOTIFY_ACTIVITY = 0;
 
 
@@ -173,14 +174,14 @@ String getTime() {
 }
 
 /**
- * Returns a string representation of date (dd/MM/yyyy)
+ * Returns a string representation of date (dd-MM-yy). Used for logging
  */
 String getDate() {
 
   t = rtc.time();
 
   char out[20];
-  snprintf(out, 20, "%02d-%02d-%04d", t.date, t.mon, t.yr);
+  snprintf(out, 20, "%02d%02d%d", t.date, t.mon, t.yr);
 
   return String(out);
 }
@@ -197,7 +198,7 @@ String readSerial() {
     recData += (char)Serial.read();
     delay(5);
   }
-  return recData; 
+  return recData;
 }
 
 /*
@@ -214,7 +215,7 @@ void action() {
     //action without value
     if (action.indexOf(ACTION_VALUE_SEPARATOR) == -1) {
       executeAction(action.toInt());
-    } 
+    }
     else {
       executeAction(getActionId(action), getActionValue(action));
     }
@@ -250,7 +251,7 @@ void executeAction(int action) {
     break;
 
   case UP_TIME:
-    printResult(UP_TIME, millis()/1000); 
+    printResult(UP_TIME, millis()/1000);
     break;
   }
 }
@@ -353,20 +354,29 @@ int readHumidity() {
   return h;
 }
 
-
 /*
 Function to log data
  */
 void log(String data) {
   load();
+  
+  String date = "";
+  date += getDate();
+  date += ".log";
+  
+  char fileName[15];
+  date.toCharArray(fileName, 15);
 
-  file = SD.open("mss.log", FILE_WRITE);
-  file.println(data);
-  file.close();
+  file = SD.open(fileName, FILE_WRITE);
+  if (!file) {
+    print("SD card file read error");
+  } else {
+    file.println(data);
+    file.close();
+  }
 
   unload();
 }
-
 
 /*
 Prints a value in main serial port
@@ -406,4 +416,3 @@ Turn on or off the load led
 void loading(int on) {
   digitalWrite(LOADPIN, on);
 }
-
